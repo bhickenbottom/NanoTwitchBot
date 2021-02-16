@@ -1,0 +1,11 @@
+﻿{
+  "Nodes": [
+    "https://mynano.ninja/api/node",
+    "https://nault.nanos.cc/proxy",
+    "https://vox.nanos.cc/api",
+    "https://proxy.powernode.cc/proxy",
+    "https://rainstorm.city/api",
+    "https://api.nanex.cc",
+    "https://vault.nanocrawler.cc/api/node-api"
+  ]
+}
