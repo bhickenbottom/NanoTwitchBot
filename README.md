@@ -1,4 +1,4 @@
-# NanoTwitchBot
+# Nano Twitch Bot
 ## A Nano donation bot for Twitch chat
 
 This bot monitors a Nano account for pending receives and posts donation messages in a channel's Twitch chat.
