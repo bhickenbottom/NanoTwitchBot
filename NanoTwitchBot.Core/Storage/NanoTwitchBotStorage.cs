@@ -28,6 +28,7 @@
         public NanoTwitchBotStorage()
         {
             this.Aliases = new List<Alias>();
+            this.PollingIntervalInSeconds = 10;
         }
 
         #endregion

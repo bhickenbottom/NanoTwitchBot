@@ -169,11 +169,11 @@
             }
         }
 
-        public void OnNanoListenerError(string error)
+        public void OnNanoListenerError(NanoResult nanoResult)
         {
             lock (this.messages)
             {
-                this.messages.Add(new NanoTwitchBotMessage(NanoTwitchBotMessageType.Error, error));
+                this.messages.Add(new NanoTwitchBotMessage(NanoTwitchBotMessageType.Error, nanoResult.ToString()));
             }
         }
 

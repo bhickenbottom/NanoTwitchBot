@@ -2,8 +2,9 @@
 {
     using System;
     using System.Net;
+    using System.Text;
 
-    public class NanoResult<T> where T : NanoResponse
+    public class NanoResult
     {
         #region Properties
 
@@ -13,38 +14,56 @@
 
         public string Json { get; set; }
 
-        public T Response { get; set; }
+        public string Node { get; set; }
 
         public HttpStatusCode StatusCode { get; set; }
 
         #endregion
 
-        #region Methods
+        #region Virtual Methods
 
-        public bool IsError(out string error)
+        public virtual bool IsError()
         {
-            error = null;
+            return !this.IsSuccessStatusCode || this.Json == null || this.Exception != null;
+        }
+
+        #endregion
+
+        #region Method Overrides
+
+        public override string ToString()
+        {
+            StringBuilder stringBuilder = new StringBuilder();
+            stringBuilder.AppendLine($"{this.Node} {this.StatusCode}");
+            if (this.Json != null)
+            {
+                stringBuilder.AppendLine($"{this.Json}");
+            }
+
             if (this.Exception != null)
             {
-                error = $"Exception: {this.Exception}";
+                stringBuilder.AppendLine($"{this.Exception}");
             }
 
-            if (!this.IsSuccessStatusCode)
-            {
-                error = $"Status Code: {this.StatusCode}";
-            }
+            return stringBuilder.ToString();
+        }
 
-            if (this.Response == null)
-            {
-                error = $"Deserialization: {this.Json}";
-            }
+        #endregion
+    }
 
-            if (this.Response?.Error != null)
-            {
-                error = $"Error: {this.Response?.Error}";
-            }
+    public class NanoResult<T> : NanoResult where T : NanoResponse
+    {
+        #region Properties
 
-            return error != null;
+        public T Response { get; set; }
+
+        #endregion
+
+        #region Method Overrides
+
+        public override bool IsError()
+        {
+            return base.IsError() || this.Response == null || this.Response.Error != null;
         }
 
         #endregion

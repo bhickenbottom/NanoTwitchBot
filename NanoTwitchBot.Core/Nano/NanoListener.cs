@@ -16,6 +16,12 @@
             this.Interval = interval;
             this.Count = count;
 
+            // Interval
+            if (this.Interval < TimeSpan.FromSeconds(1))
+            {
+                this.Interval = TimeSpan.FromSeconds(1);
+            }
+
             // Known Hashes
             this.knownHashes = new List<string>();
         }
@@ -42,7 +48,7 @@
 
         #region Methods
 
-        public Task Start(Action<NanoListenerTransaction> transactionCallback, Action<string> errorCallback)
+        public Task Start(Action<NanoListenerTransaction> transactionCallback, Action<NanoResult> errorCallback)
         {
             return Task.Run(
                 async () =>
@@ -56,17 +62,17 @@
                             pendingRequest.Account = this.Account;
                             pendingRequest.Count = this.Count.ToString();
                             NanoResult<PendingResponse> pendingResult = await this.Nano.SendAsync<PendingResponse>(pendingRequest);
-                            if (pendingResult.IsError(out string pendingError))
+                            if (pendingResult.IsError())
                             {
-                                errorCallback?.Invoke(pendingError);
+                                errorCallback?.Invoke(pendingResult);
                             }
 
                             BlocksInfoRequest blocksInfoRequest = new BlocksInfoRequest();
                             blocksInfoRequest.Hashes = pendingResult.Response.Blocks;
                             NanoResult<BlocksInfoResponse> blocksInfoResult = await this.Nano.SendAsync<BlocksInfoResponse>(blocksInfoRequest);
-                            if (blocksInfoResult.IsError(out string blockInfoError))
+                            if (blocksInfoResult.IsError())
                             {
-                                errorCallback?.Invoke(blockInfoError);
+                                errorCallback?.Invoke(blocksInfoResult);
                             }
 
                             if (blocksInfoResult.Response.Blocks != null)
@@ -86,9 +92,9 @@
                                 }
                             }
                         }
-                        catch (Exception ex)
+                        catch
                         {
-                            errorCallback?.Invoke(ex.ToString());
+                            // Do Nothing (For Now)
                         }
                     }
                 });

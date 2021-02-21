@@ -2,6 +2,7 @@
 {
     using System;
     using System.Globalization;
+    using System.Threading;
     using NanoTwitchBot.Core;
     using NanoTwitchBot.Core.Storage;
 
@@ -120,6 +121,8 @@
 
                         Console.WriteLine(message.Message);
                     }
+
+                    Thread.Sleep(1000);
                 }
             }
             catch (Exception ex)
