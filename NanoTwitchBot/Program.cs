@@ -67,7 +67,7 @@
 
             // Header
             Console.ForegroundColor = ConsoleColor.DarkMagenta;
-            Console.WriteLine("Nano Twitch Bot version 0.01");
+            Console.WriteLine("Nano Twitch Bot version 0.02");
 
             // Information
             Console.ForegroundColor = ConsoleColor.Gray;
