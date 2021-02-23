@@ -7,8 +7,12 @@
     {
         #region Constructors
 
-        public NanoListenerTransaction(BlockInfo block)
+        public NanoListenerTransaction(string hash, BlockInfo block)
         {
+            // Hash
+            this.Hash = hash;
+
+            // Block
             this.Block = block;
 
             // Amounts
@@ -26,6 +30,8 @@
         public BlockInfo Block { get; private set; }
 
         public double FriendlyNanoAmount { get; private set; }
+
+        public string Hash { get; private set; }
 
         public BigInteger RawAmount { get; private set; }
 

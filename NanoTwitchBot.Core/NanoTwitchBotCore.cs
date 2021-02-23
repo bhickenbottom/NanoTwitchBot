@@ -37,6 +37,10 @@
             NanoClient nanoClient = new NanoClient();
             this.Listener = new NanoListener(nanoClient, this.Storage.NanoAccount, TimeSpan.FromSeconds(this.Storage.PollingIntervalInSeconds), 100);
             this.Listener.Start(this.OnNanoListenerTransaction, this.OnNanoListenerError);
+            foreach (string knownHash in this.Storage.KnownHashes)
+            {
+                this.Listener.AddKnownHash(knownHash);
+            }
 
             // Twitch
             ConnectionCredentials credentials = new ConnectionCredentials(this.Storage.TwitchUsername, twitchAuthToken);
@@ -61,7 +65,8 @@
             {
                 if (this.Twitch.IsConnected)
                 {
-                    this.Twitch.SendMessage(new JoinedChannel(this.Storage.TwitchChannel), "Nano bot online!");
+                    string chatMessageOnline = this.Storage.ChatMessageOnline;
+                    this.Twitch.SendMessage(new JoinedChannel(this.Storage.TwitchChannel), chatMessageOnline);
                 }
             };
 
@@ -76,7 +81,8 @@
                 {
                     if (this.Twitch.IsConnected)
                     {
-                        this.Twitch.SendMessage(new JoinedChannel(this.Storage.TwitchChannel), $"This channel accepts Nano donations. Nano is an instant, feeless, eco-friendly cryptocurrency. Send Nano donations to {this.Storage.NanoAccount}. !nano_add <account> adds an alias. !nano_delete deletes an alias. To get started, download the Natrium app.");
+                        string chatMessageInfo = string.Format(this.Storage.ChatMessageInfo, this.Storage.NanoAccount);
+                        this.Twitch.SendMessage(new JoinedChannel(this.Storage.TwitchChannel), chatMessageInfo);
                     }
                 }
 
@@ -88,7 +94,8 @@
                     this.AddAddress(e.ChatMessage.DisplayName, account, true);
                     if (this.Twitch.IsConnected)
                     {
-                        this.Twitch.SendMessage(new JoinedChannel(this.Storage.TwitchChannel), $"Added Nano alias for {e.ChatMessage.DisplayName}.");
+                        string chatMessageAdded = string.Format(this.Storage.ChatMessageAdded, e.ChatMessage.DisplayName);
+                        this.Twitch.SendMessage(new JoinedChannel(this.Storage.TwitchChannel), chatMessageAdded);
                     }
                 }
 
@@ -98,7 +105,8 @@
                     this.DeleteAddress(e.ChatMessage.DisplayName, true);
                     if (this.Twitch.IsConnected)
                     {
-                        this.Twitch.SendMessage(new JoinedChannel(this.Storage.TwitchChannel), $"Deleted Nano alias for {e.ChatMessage.DisplayName}.");
+                        string chatMessageDeleted = string.Format(this.Storage.ChatMessageDeleted, e.ChatMessage.DisplayName);
+                        this.Twitch.SendMessage(new JoinedChannel(this.Storage.TwitchChannel), chatMessageDeleted);
                     }
                 }
             };
@@ -127,35 +135,41 @@
         private void AddAddress(string displayName, string account, bool save)
         {
             this.DeleteAddress(displayName, false);
-            Alias alias = new Alias();
-            alias.DisplayName = displayName;
-            alias.Account = account;
-            this.Storage.Aliases.Add(alias);
-            if (save)
+            lock (this.Storage)
             {
-                this.Storage.Save();
+                Alias alias = new Alias();
+                alias.DisplayName = displayName;
+                alias.Account = account;
+                this.Storage.Aliases.Add(alias);
+                if (save)
+                {
+                    this.Storage.Save();
+                }
             }
         }
 
         private void DeleteAddress(string displayName, bool save)
         {
-            int i = 0;
-            while (i < this.Storage.Aliases.Count)
+            lock (this.Storage)
             {
-                Alias alias = this.Storage.Aliases[i];
-                if (alias.DisplayName == displayName)
+                int i = 0;
+                while (i < this.Storage.Aliases.Count)
                 {
-                    this.Storage.Aliases.RemoveAt(i);
+                    Alias alias = this.Storage.Aliases[i];
+                    if (alias.DisplayName == displayName)
+                    {
+                        this.Storage.Aliases.RemoveAt(i);
+                    }
+                    else
+                    {
+                        i++;
+                    }
                 }
-                else
-                {
-                    i++;
-                }
-            }
 
-            if (save)
-            {
-                this.Storage.Save();
+                if (save)
+                {
+                    this.Storage.Save();
+                }
             }
         }
 
@@ -179,36 +193,43 @@
 
         public void OnNanoListenerTransaction(NanoListenerTransaction transaction)
         {
-            // Message
-            string message = $"Anonymous donated {transaction.FriendlyNanoAmount} Nano!";
-
-            // Aliased Message
-            Alias aliasForSender = null;
-            foreach (Alias alias in this.Storage.Aliases)
+            lock (this.Storage)
             {
-                if (alias.Account == transaction.Sender)
+                // Keep Track
+                this.Storage.KnownHashes.Add(transaction.Hash);
+                this.Storage.Save();
+
+                // Message
+                string message = string.Format(this.Storage.ChatMessageAnonymousDonation, transaction.FriendlyNanoAmount);
+
+                // Aliased Message
+                Alias aliasForSender = null;
+                foreach (Alias alias in this.Storage.Aliases)
                 {
-                    aliasForSender = alias;
+                    if (alias.Account == transaction.Sender)
+                    {
+                        aliasForSender = alias;
+                    }
                 }
-            }
 
-            if (aliasForSender != null)
-            {
-                message = $"{aliasForSender.DisplayName} donated {transaction.FriendlyNanoAmount} Nano!";
-            }
-
-            // Bot Message
-            lock (this.messages)
-            {
-                this.messages.Add(new NanoTwitchBotMessage(NanoTwitchBotMessageType.Success, message));
-            }
-
-            // Twitch Message
-            if (transaction.FriendlyNanoAmount >= this.Storage.MinimumDonationAmount)
-            {
-                if (this.Twitch.IsConnected)
+                if (aliasForSender != null)
                 {
-                    this.Twitch.SendMessage(new JoinedChannel(this.Storage.TwitchChannel), message);
+                    message = string.Format(this.Storage.ChatMessageAliasedDonation, transaction.FriendlyNanoAmount, aliasForSender.DisplayName);
+                }
+
+                // Bot Message
+                lock (this.messages)
+                {
+                    this.messages.Add(new NanoTwitchBotMessage(NanoTwitchBotMessageType.Success, message));
+                }
+
+                // Twitch Message
+                if (transaction.FriendlyNanoAmount >= this.Storage.MinimumDonationAmount)
+                {
+                    if (this.Twitch.IsConnected)
+                    {
+                        this.Twitch.SendMessage(new JoinedChannel(this.Storage.TwitchChannel), message);
+                    }
                 }
             }
         }

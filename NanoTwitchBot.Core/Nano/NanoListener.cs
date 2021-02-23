@@ -48,6 +48,14 @@
 
         #region Methods
 
+        public void AddKnownHash(string hash)
+        {
+            lock (this.knownHashes)
+            {
+                this.knownHashes.Add(hash);
+            }
+        }
+
         public Task Start(Action<NanoListenerTransaction> transactionCallback, Action<NanoResult> errorCallback)
         {
             return Task.Run(
@@ -79,15 +87,18 @@
                             {
                                 foreach ((string key, BlockInfo block) in blocksInfoResult.Response.Blocks)
                                 {
-                                    if (this.knownHashes.Contains(key))
+                                    lock (this.knownHashes)
                                     {
-                                        continue;
-                                    }
+                                        if (this.knownHashes.Contains(key))
+                                        {
+                                            continue;
+                                        }
 
-                                    if (block.Confirmed == "true")
-                                    {
-                                        this.knownHashes.Add(key);
-                                        transactionCallback?.Invoke(new NanoListenerTransaction(block));
+                                        if (block.Confirmed == "true")
+                                        {
+                                            this.knownHashes.Add(key);
+                                            transactionCallback?.Invoke(new NanoListenerTransaction(key, block));
+                                        }
                                     }
                                 }
                             }
