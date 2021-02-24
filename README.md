@@ -9,7 +9,7 @@ Nano is a cryptocurrency that's instant, feeless, and eco-friendly. It's perfect
 
 ## Getting Started
 
-Before you run the bot, make sure your Nano wallet is locked or that the wallet is set to manually receive pending receives. The bot can only see **pending** receives.
+Before you run the bot, make sure your Nano wallet is locked, closed, or that the wallet is set to manual receives. The bot can only see **pending** receives.
 
 Run NanoTwitchBot.exe and answer the prompts. The answers to these prompts will be remembered for future runs, except for the Twitch Auth Token.
 
